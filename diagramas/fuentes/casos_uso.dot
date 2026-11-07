@@ -1,0 +1,36 @@
+digraph CU {
+  rankdir=LR; graph [fontname="Helvetica", fontsize=12, label="Figura 1. Diagrama de casos de uso del SGA", labelloc=t, nodesep=0.25, ranksep=1.1, pad=0.3];
+  node [fontname="Helvetica", fontsize=11]; edge [arrowhead=none, color="#555555"];
+  subgraph cluster_actores { style=invis;
+    adm [label="Administrador", shape=box, style="rounded,filled", fillcolor="#E3F2FD"];
+    coo [label="Coordinador\nacadémico", shape=box, style="rounded,filled", fillcolor="#E3F2FD"];
+    doc [label="Docente", shape=box, style="rounded,filled", fillcolor="#E3F2FD"];
+    est [label="Estudiante", shape=box, style="rounded,filled", fillcolor="#E3F2FD"];
+  }
+  subgraph cluster_sga { label="Sistema de Gestión Académica (SGA)"; style="rounded"; color="#1565C0"; fontcolor="#1565C0";
+    node [shape=ellipse, style=filled, fillcolor="#FFFFFF"];
+    cu01 [label="CU-01 Iniciar / cerrar sesión"];
+    cu02 [label="CU-02 Gestionar usuarios y roles"];
+    cu03 [label="CU-03 Gestionar estudiantes"];
+    cu04 [label="CU-04 Gestionar docentes"];
+    cu05 [label="CU-05 Gestionar programas\ny asignaturas"];
+    cu06 [label="CU-06 Configurar periodos\ny grupos"];
+    cu07 [label="CU-07 Matricular estudiante"];
+    cu08 [label="CU-08 Registrar calificaciones"];
+    cu09 [label="CU-09 Consultar horario\ny calificaciones"];
+    cu10 [label="CU-10 Generar reportes"];
+    cu11 [label="CU-11 Buscar y filtrar"];
+    cu12 [label="CU-12 Consultar auditoría"];
+    val [label="Validar cupo y duplicidad", fillcolor="#FFF8E1"];
+    aud [label="Registrar evento de auditoría", fillcolor="#FFF8E1"];
+  }
+  adm -> {cu01 cu02 cu03 cu04 cu11 cu12};
+  coo -> {cu01 cu05 cu06 cu07 cu10 cu11};
+  doc -> {cu01 cu08 cu11};
+  est -> {cu01 cu07 cu09};
+  edge [style=dashed, arrowhead=vee, fontsize=9, fontcolor="#795548", color="#795548"];
+  cu07 -> val [label="«include»"];
+  cu07 -> aud [label="«include»"];
+  cu08 -> aud [label="«include»"];
+  cu02 -> aud [label="«include»"];
+}

@@ -1,0 +1,31 @@
+digraph C {
+  rankdir=TB; compound=true; graph [fontname="Helvetica", fontsize=12, label="Figura 2. Vista lógica: monolito modular en capas", labelloc=t, nodesep=0.35, ranksep=0.55, pad=0.3];
+  node [fontname="Helvetica", fontsize=10, shape=box, style="rounded,filled", fillcolor="#FFFFFF"]; edge [color="#455A64", fontsize=9, fontname="Helvetica"];
+  subgraph cluster_p { label="Capa de presentación (SPA web responsive)"; style="rounded,filled"; fillcolor="#E8F5E9"; color="#2E7D32";
+    ui [label="Interfaz web\n(vistas por rol, formularios,\nreportes, accesible WCAG 2.1 AA)"]; }
+  subgraph cluster_api { label="Capa de API"; style="rounded,filled"; fillcolor="#E3F2FD"; color="#1565C0";
+    gw [label="API REST /api/v1 (OpenAPI 3)\nControladores + validación de entrada\nMiddleware JWT + RBAC + rate limiting"]; }
+  subgraph cluster_neg { label="Capa de negocio: módulos del monolito modular"; style="rounded,filled"; fillcolor="#FFF8E1"; color="#F9A825";
+    auth [label="Identidad y acceso\n(IAuthService)\nlogin, logout, roles, permisos"];
+    acad [label="Gestión académica\n(IAcademicService)\nestudiantes, docentes,\nprogramas, asignaturas"];
+    per [label="Periodos y grupos\n(IGroupService)\ncupos, horarios, aulas"];
+    mat [label="Matrículas\n(IEnrollmentService)\nvalidación de cupo y duplicidad"];
+    cal [label="Calificaciones\n(IGradeService)\nregistro, publicación"];
+    rep [label="Reportes y búsqueda\n(IReportService)\nfiltros por periodo/programa"];
+    aud [label="Auditoría\n(IAuditService)\nregistro inmutable de eventos"];
+  }
+  subgraph cluster_dat { label="Capa de acceso a datos"; style="rounded,filled"; fillcolor="#F3E5F5"; color="#6A1B9A";
+    repo [label="Repositorios (ORM)\ntransacciones ACID, bloqueo optimista"];
+    db [label="PostgreSQL\n(un esquema por módulo)", shape=cylinder, fillcolor="#EDE7F6"];
+    cache [label="Redis\n(sesiones revocadas, caché)", shape=cylinder, fillcolor="#EDE7F6"];
+  }
+  ui -> gw [label="HTTPS / JSON"];
+  gw -> {auth acad per mat cal rep};
+  mat -> per [label="consulta cupos", style=dashed];
+  mat -> acad [label="valida estudiante", style=dashed];
+  cal -> mat [label="verifica matrícula", style=dashed];
+  rep -> {acad mat cal} [style=dotted, arrowhead=open];
+  {auth mat cal acad} -> aud [label="evento", style=dashed, color="#E65100", fontcolor="#E65100"];
+  {auth acad per mat cal rep aud} -> repo;
+  repo -> db; auth -> cache [style=dashed];
+}

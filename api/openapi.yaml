@@ -1,0 +1,289 @@
+openapi: 3.1.0
+info:
+  title: API del Sistema de Gestión Académica (SGA)
+  version: 1.0.0
+  description: >
+    Contrato propuesto de la API REST del SGA (RNF-08). Todas las rutas requieren HTTPS
+    y un token JWT en la cabecera Authorization, salvo /auth/login.
+servers:
+  - url: https://sga.ejemplo.edu.co/api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Autenticación
+  - name: Gestión académica
+  - name: Periodos y grupos
+  - name: Matrículas
+  - name: Calificaciones
+  - name: Reportes
+  - name: Auditoría
+paths:
+  /auth/login:
+    post:
+      tags: [Autenticación]
+      summary: Iniciar sesión (RF-01)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [correo, contrasena]
+              properties:
+                correo: { type: string, format: email }
+                contrasena: { type: string, format: password }
+      responses:
+        '200':
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken: { type: string }
+                  refreshToken: { type: string }
+                  expiraEn: { type: integer, example: 900 }
+        '401': { $ref: '#/components/responses/NoAutenticado' }
+        '429': { description: Demasiados intentos }
+  /auth/logout:
+    post:
+      tags: [Autenticación]
+      summary: Cerrar sesión y revocar el token (RF-01)
+      responses:
+        '204': { description: Sesión cerrada }
+  /estudiantes:
+    get:
+      tags: [Gestión académica]
+      summary: Buscar estudiantes (RF-03, RF-11)
+      parameters:
+        - { name: q, in: query, schema: { type: string }, description: Nombre o documento }
+        - { name: programaId, in: query, schema: { type: integer } }
+        - { name: estado, in: query, schema: { type: string, enum: [ACTIVO, INACTIVO] } }
+        - { $ref: '#/components/parameters/pagina' }
+      responses:
+        '200':
+          description: Lista paginada
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Estudiante' }
+        '403': { $ref: '#/components/responses/SinPermiso' }
+    post:
+      tags: [Gestión académica]
+      summary: Registrar estudiante (RF-03)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Estudiante' }
+      responses:
+        '201': { description: Creado }
+        '409': { description: Documento o código duplicado }
+  /estudiantes/{id}:
+    patch:
+      tags: [Gestión académica]
+      summary: Actualizar o desactivar estudiante (RF-03)
+      parameters: [ { $ref: '#/components/parameters/idUuid' } ]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Estudiante' }
+      responses:
+        '200': { description: Actualizado }
+  /docentes:
+    get:
+      tags: [Gestión académica]
+      summary: Buscar docentes (RF-04, RF-11)
+      responses: { '200': { description: Lista paginada } }
+    post:
+      tags: [Gestión académica]
+      summary: Registrar docente (RF-04)
+      responses: { '201': { description: Creado } }
+  /programas:
+    post:
+      tags: [Gestión académica]
+      summary: Crear programa académico (RF-05)
+      responses: { '201': { description: Creado } }
+  /asignaturas:
+    post:
+      tags: [Gestión académica]
+      summary: Crear asignatura (RF-05)
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Asignatura' }
+      responses: { '201': { description: Creada } }
+  /periodos:
+    post:
+      tags: [Periodos y grupos]
+      summary: Crear periodo académico (RF-06)
+      responses: { '201': { description: Creado } }
+  /grupos:
+    post:
+      tags: [Periodos y grupos]
+      summary: Crear grupo con cupo, docente, horario y aula (RF-06)
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/Grupo' }
+      responses:
+        '201': { description: Creado }
+        '409': { description: Cruce de horario del docente }
+  /matriculas:
+    post:
+      tags: [Matrículas]
+      summary: Matricular estudiante en un grupo (RF-07)
+      description: >
+        Se ejecuta en una transacción con bloqueo de la fila del grupo.
+        Rechaza si no hay cupo, si el periodo está cerrado o si la matrícula ya existe.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [estudianteId, grupoId]
+              properties:
+                estudianteId: { type: string, format: uuid }
+                grupoId: { type: integer }
+      responses:
+        '201':
+          description: Matrícula creada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Matricula' }
+        '403': { $ref: '#/components/responses/SinPermiso' }
+        '409':
+          description: Sin cupo, periodo cerrado o matrícula duplicada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /estudiantes/{id}/matriculas:
+    get:
+      tags: [Matrículas]
+      summary: Asignaturas matriculadas y horario del estudiante (RF-09)
+      parameters: [ { $ref: '#/components/parameters/idUuid' } ]
+      responses:
+        '200': { description: Lista de matrículas con horario }
+        '403': { description: Un estudiante solo ve su propia información (RNF-11) }
+  /grupos/{id}/calificaciones:
+    put:
+      tags: [Calificaciones]
+      summary: Registrar o actualizar notas de un grupo (RF-08)
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer } }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items: { $ref: '#/components/schemas/Calificacion' }
+      responses:
+        '200': { description: Notas guardadas y auditadas }
+        '403': { description: El docente no dicta este grupo }
+        '409': { description: Conflicto de versión (edición concurrente) }
+  /reportes/{tipo}:
+    get:
+      tags: [Reportes]
+      summary: Reportes por periodo y programa (RF-10)
+      parameters:
+        - { name: tipo, in: path, required: true, schema: { type: string, enum: [matriculados, grupos, asignaturas, resultados] } }
+        - { name: periodo, in: query, schema: { type: string } }
+        - { name: programa, in: query, schema: { type: integer } }
+        - { name: formato, in: query, schema: { type: string, enum: [json, csv, pdf] } }
+      responses: { '200': { description: Reporte } }
+  /auditoria:
+    get:
+      tags: [Auditoría]
+      summary: Consultar eventos de auditoría (RF-12), solo administrador
+      parameters:
+        - { name: usuarioId, in: query, schema: { type: string, format: uuid } }
+        - { name: accion, in: query, schema: { type: string } }
+        - { name: desde, in: query, schema: { type: string, format: date } }
+        - { name: hasta, in: query, schema: { type: string, format: date } }
+      responses:
+        '200':
+          description: Eventos
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/EventoAuditoria' }
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    idUuid: { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+    pagina: { name: pagina, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+  responses:
+    NoAutenticado: { description: Token ausente, inválido o revocado }
+    SinPermiso: { description: El rol no tiene permiso para esta operación }
+  schemas:
+    Estudiante:
+      type: object
+      properties:
+        id: { type: string, format: uuid, readOnly: true }
+        documento: { type: string }
+        codigo: { type: string }
+        nombres: { type: string }
+        programaId: { type: integer }
+        estado: { type: string, enum: [ACTIVO, INACTIVO] }
+    Asignatura:
+      type: object
+      required: [codigo, nombre, creditos, semestre]
+      properties:
+        codigo: { type: string }
+        nombre: { type: string }
+        creditos: { type: integer, minimum: 1 }
+        semestre: { type: integer, minimum: 1 }
+    Grupo:
+      type: object
+      properties:
+        id: { type: integer, readOnly: true }
+        asignaturaId: { type: integer }
+        periodoId: { type: integer }
+        docenteId: { type: string, format: uuid }
+        cupoMax: { type: integer, minimum: 1 }
+        cupoOcupado: { type: integer, readOnly: true }
+        horarios:
+          type: array
+          items:
+            type: object
+            properties:
+              dia: { type: string }
+              inicio: { type: string, example: '07:00' }
+              fin: { type: string, example: '09:00' }
+              aulaOEnlace: { type: string }
+    Matricula:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        estudianteId: { type: string, format: uuid }
+        grupoId: { type: integer }
+        fecha: { type: string, format: date-time }
+        estado: { type: string, enum: [ACTIVA, CANCELADA] }
+    Calificacion:
+      type: object
+      required: [matriculaId, corte, nota]
+      properties:
+        matriculaId: { type: string, format: uuid }
+        corte: { type: string, example: '1' }
+        nota: { type: number, minimum: 0, maximum: 5 }
+        publicada: { type: boolean }
+        version: { type: integer, description: Para bloqueo optimista }
+    EventoAuditoria:
+      type: object
+      properties:
+        id: { type: integer }
+        fecha: { type: string, format: date-time }
+        usuarioId: { type: string, format: uuid }
+        accion: { type: string, example: MATRICULA_CREADA }
+        entidad: { type: string }
+        registroId: { type: string }
+    Error:
+      type: object
+      properties:
+        codigo: { type: string, example: SIN_CUPO }
+        mensaje: { type: string }

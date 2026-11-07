@@ -1,0 +1,97 @@
+erDiagram
+    USUARIO }o--o{ ROL : "tiene"
+    ROL }o--o{ PERMISO : "otorga"
+    PERMISO {
+        int id PK
+        string codigo UK
+        string descripcion
+    }
+    USUARIO ||--o| ESTUDIANTE : "es"
+    USUARIO ||--o| DOCENTE : "es"
+    PROGRAMA ||--|{ ASIGNATURA : "incluye (plan de estudios)"
+    PROGRAMA ||--o{ ESTUDIANTE : "inscribe"
+    PERIODO_ACADEMICO ||--o{ GRUPO : "abre"
+    ASIGNATURA ||--o{ GRUPO : "se ofrece en"
+    DOCENTE ||--o{ GRUPO : "dicta"
+    GRUPO ||--|{ HORARIO : "tiene"
+    ESTUDIANTE ||--o{ MATRICULA : "realiza"
+    GRUPO ||--o{ MATRICULA : "recibe"
+    MATRICULA ||--o{ CALIFICACION : "registra"
+    USUARIO ||--o{ EVENTO_AUDITORIA : "genera"
+    USUARIO {
+        uuid id PK
+        string correo UK
+        string hash_contrasena
+        bool activo
+    }
+    ROL {
+        int id PK
+        string nombre UK
+    }
+    ESTUDIANTE {
+        uuid id PK
+        string documento UK
+        string codigo UK
+        string estado
+    }
+    DOCENTE {
+        uuid id PK
+        string documento UK
+        string area
+        string estado
+    }
+    PROGRAMA {
+        int id PK
+        string codigo UK
+        string nombre
+        int creditos_totales
+    }
+    ASIGNATURA {
+        int id PK
+        string codigo UK
+        string nombre
+        int creditos
+        int semestre
+    }
+    PERIODO_ACADEMICO {
+        int id PK
+        string codigo UK
+        date inicio
+        date fin
+        string estado
+    }
+    GRUPO {
+        int id PK
+        string codigo
+        int cupo_max
+        int cupo_ocupado
+        int version
+    }
+    HORARIO {
+        int id PK
+        string dia
+        time inicio
+        time fin
+        string aula_o_enlace
+    }
+    MATRICULA {
+        uuid id PK
+        uuid estudiante_id FK
+        int grupo_id FK
+        datetime fecha
+        string estado
+    }
+    CALIFICACION {
+        uuid id PK
+        string corte
+        decimal nota
+        bool publicada
+        int version
+    }
+    EVENTO_AUDITORIA {
+        bigint id PK
+        datetime fecha
+        string accion
+        string entidad
+        string registro_id
+    }

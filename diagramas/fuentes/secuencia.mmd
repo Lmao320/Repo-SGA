@@ -1,0 +1,36 @@
+sequenceDiagram
+    autonumber
+    actor C as Coordinador / Estudiante
+    participant UI as Interfaz web (SPA)
+    participant API as API REST + Middleware JWT/RBAC
+    participant MAT as Módulo Matrículas
+    participant GRP as Módulo Periodos y grupos
+    participant DB as PostgreSQL
+    participant AUD as Módulo Auditoría
+    C->>UI: Selecciona estudiante, periodo y grupo
+    UI->>API: POST /api/v1/matriculas {estudianteId, grupoId} + JWT
+    API->>API: Valida token, rol y permiso "matricula:crear"
+    alt Token inválido o sin permiso
+        API-->>UI: 401 / 403
+    else Autorizado
+        API->>MAT: matricular(estudianteId, grupoId)
+        MAT->>DB: BEGIN TRANSACTION
+        MAT->>GRP: obtenerGrupoParaActualizar(grupoId)
+        GRP->>DB: SELECT ... FROM grupo WHERE id=? FOR UPDATE
+        DB-->>GRP: grupo (cupo_max, cupo_ocupado, periodo abierto)
+        GRP-->>MAT: datos del grupo
+        MAT->>DB: ¿Existe matrícula activa (estudiante, grupo)?
+        alt Sin cupo, periodo cerrado o matrícula duplicada
+            MAT->>DB: ROLLBACK
+            MAT-->>API: Error de regla de negocio
+            API-->>UI: 409 Conflict + mensaje claro
+        else Reglas válidas
+            MAT->>DB: INSERT matricula / UPDATE grupo cupo_ocupado+1
+            MAT->>AUD: registrar(usuario, "MATRICULA_CREADA", matriculaId)
+            AUD->>DB: INSERT evento_auditoria
+            MAT->>DB: COMMIT
+            MAT-->>API: Matrícula creada
+            API-->>UI: 201 Created {matriculaId}
+            UI-->>C: Confirmación y horario actualizado
+        end
+    end

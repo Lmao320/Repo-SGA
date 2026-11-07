@@ -1,0 +1,31 @@
+digraph D {
+  rankdir=LR; graph [fontname="Helvetica", fontsize=12, label="Figura 3. Modelo de despliegue (nube, entorno de producción)", labelloc=t, nodesep=0.4, ranksep=0.7, pad=0.3];
+  node [fontname="Helvetica", fontsize=10, shape=box3d, style=filled, fillcolor="#FFFFFF"]; edge [fontname="Helvetica", fontsize=9, color="#37474F"];
+  user [label="Navegador\n(PC / móvil)", shape=box, style="rounded,filled", fillcolor="#E8F5E9"];
+  subgraph cluster_edge { label="Borde"; style=rounded; color="#2E7D32";
+    cdn [label="CDN + WAF\n(estáticos de la SPA,\nfiltrado OWASP)"]; }
+  subgraph cluster_vpc { label="Red privada (VPC)"; style="rounded"; color="#1565C0";
+    subgraph cluster_pub { label="Subred pública"; style=dashed;
+      lb [label="Balanceador de carga\nTLS 1.2+ (terminación HTTPS)\nhealth checks"]; }
+    subgraph cluster_app { label="Subred privada de aplicación (autoescalado 2..N)"; style=dashed;
+      app1 [label="Contenedor API #1\n(monolito modular)"];
+      app2 [label="Contenedor API #2\n(monolito modular)"]; }
+    subgraph cluster_data { label="Subred privada de datos"; style=dashed;
+      dbp [label="PostgreSQL primario\n(cifrado en reposo)", shape=cylinder, fillcolor="#EDE7F6"];
+      dbr [label="PostgreSQL réplica\n(otra zona, failover)", shape=cylinder, fillcolor="#EDE7F6"];
+      redis [label="Redis gestionado", shape=cylinder, fillcolor="#EDE7F6"]; }
+  }
+  subgraph cluster_aux { label="Servicios complementarios"; style=rounded; color="#6D4C41";
+    bk [label="Almacenamiento de objetos\n(backups diarios + WAL,\nretención 30 días, otra región)"];
+    mon [label="Monitoreo y logs\n(métricas, alertas, trazas)"];
+    smtp [label="Servicio de correo\n(notificaciones)"];
+    sec [label="Gestor de secretos\n(credenciales BD, llave JWT)"]; }
+  user -> cdn [label="HTTPS 443"];
+  cdn -> lb [label="HTTPS"];
+  lb -> app1 [label="HTTP interno"]; lb -> app2;
+  app1 -> dbp [label="TCP 5432 / TLS"]; app2 -> dbp;
+  dbp -> dbr [label="replicación\nstreaming", style=dashed];
+  app1 -> redis [label="TLS"]; app2 -> redis;
+  dbp -> bk [label="snapshot +\nPITR", style=dashed];
+  app1 -> mon [style=dotted]; app1 -> smtp [style=dotted]; app1 -> sec [style=dotted];
+}
