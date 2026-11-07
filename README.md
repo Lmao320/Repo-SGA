@@ -1,1 +1,1 @@
-# Repo-SGA
+# sga-arquitectura
