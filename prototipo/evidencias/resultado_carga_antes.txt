@@ -1,0 +1,14 @@
+==============================================================
+ PRUEBA DE CARGA Y CONCURRENCIA - SGA prototipo
+==============================================================
+ [1] 60 matrículas simultáneas sobre un grupo de 30 cupos
+     201 Created : 2
+     409 Conflict: 0
+     Errores (500 o conexión cortada): 58
+     Cupo ocupado final: 2 / 30  ->  FALLA
+     Latencia matrícula  p50=43.1 ms  p95=66.1 ms
+ [2] 500 consultas con 50 clientes concurrentes
+     Respuestas 200: 20   Errores: 480 (96.0 %)   Duración total: 2.19 s   Throughput: 228 req/s
+     Latencia  media=160.2 ms  p50=178.3 ms  p95=218.6 ms  máx=241.0 ms
+     Umbral RNF-02: p95 <= 3000 ms  ->  NO CUMPLE
+==============================================================

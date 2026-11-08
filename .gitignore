@@ -1,3 +1,9 @@
 .DS_Store
 *.tmp
 p.json
+__pycache__/
+*.pyc
+*.db
+htmlcov/
+.coverage
+.pytest_cache/

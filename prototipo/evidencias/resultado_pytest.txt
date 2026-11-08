@@ -1,0 +1,44 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.18, pytest-9.1.1, pluggy-1.6.0 -- /usr/local/bin/python3
+rootdir: /home/claude/repo-sga/prototipo
+configfile: pytest.ini
+testpaths: tests
+plugins: platformdirs-4.13.5, anyio-4.15.1, cov-7.1.0
+collecting ... collected 4 items
+tests/test_funcional_matricula.py::test_CP_F01_matricula_exitosa_con_cupo_disponible PASSED [ 25%]
+tests/test_funcional_matricula.py::test_CP_F02_rechazo_por_cupo_lleno_duplicidad_y_periodo_cerrado PASSED [ 50%]
+tests/test_seguridad_acceso.py::test_CP_S01_control_de_acceso_por_token_y_rol PASSED [ 75%]
+tests/test_seguridad_acceso.py::test_CP_S02_bloqueo_de_cuenta_por_fuerza_bruta FAILED [100%]
+=================================== FAILURES ===================================
+________________ test_CP_S02_bloqueo_de_cuenta_por_fuerza_bruta ________________
+    def test_CP_S02_bloqueo_de_cuenta_por_fuerza_bruta(cliente):
+        """CU-01: tras 5 intentos fallidos la cuenta debe bloquearse 15 minutos,
+        incluso si el sexto intento usa la contraseña correcta."""
+        login = {"correo": "docente.ana@sga.test"}
+        fallidos = [cliente.post("/api/v1/auth/login", json={**login, "contrasena": f"incorrecta{i}"}).status_code
+                    for i in range(5)]
+        assert fallidos == [401] * 5
+    
+        sexto = cliente.post("/api/v1/auth/login", json={**login, "contrasena": "Clave#2026"})
+    
+>       assert sexto.status_code in (423, 429), (
+            f"La cuenta no se bloqueó: el sexto intento respondió {sexto.status_code}")
+E       AssertionError: La cuenta no se bloqueó: el sexto intento respondió 200
+E       assert 200 in (423, 429)
+E        +  where 200 = <Response [200 OK]>.status_code
+tests/test_seguridad_acceso.py:42: AssertionError
+================================ tests coverage ================================
+_______________ coverage: platform linux, python 3.13.18-final-0 _______________
+Name                  Stmts   Miss  Cover   Missing
+---------------------------------------------------
+app/__init__.py           0      0   100%
+app/datos_prueba.py      11      0   100%
+app/db.py                13      0   100%
+app/main.py              59      2    97%   61, 81
+app/seguridad.py         37      0   100%
+app/servicios.py         39      4    90%   16, 21, 46, 50
+---------------------------------------------------
+TOTAL                   159      6    96%
+=========================== short test summary info ============================
+FAILED tests/test_seguridad_acceso.py::test_CP_S02_bloqueo_de_cuenta_por_fuerza_bruta - AssertionError: La cuenta no se bloqueó: el sexto intento respondió 200
+========================= 1 failed, 3 passed in 0.53s ==========================

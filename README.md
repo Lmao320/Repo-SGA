@@ -14,6 +14,7 @@ Propuesta de arquitectura para un SGA web: monolito modular en capas, API REST d
 | `diagramas/exportados/` | Diagramas exportados en PNG y SVG |
 | `api/openapi.yaml` | Contrato OpenAPI 3.1 de la API REST propuesta (RNF-08) |
 | `docs/` | Informe final en PDF |
+| `prototipo/` | Prototipo funcional (FastAPI) con las pruebas de software y métricas de calidad |
 
 ## Diagramas
 
@@ -45,6 +46,10 @@ Los `.mmd` también se pueden pegar en https://mermaid.live para verlos y editar
 - **ADR-05** Auditoría en la misma transacción, tabla de solo inserción.
 
 El detalle está en el informe (`docs/`).
+
+## Prototipo y pruebas de software
+
+La carpeta [`prototipo/`](prototipo/) contiene una implementación mínima de los módulos de autenticación, matrículas y calificaciones, con dos pruebas automatizadas (funcional y de seguridad), tres métricas de calidad y las evidencias de ejecución. Ver [`prototipo/README.md`](prototipo/README.md).
 
 ## Autor
 
